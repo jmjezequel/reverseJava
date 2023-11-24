@@ -1,7 +1,6 @@
-package fr.irisa.diverse.plantUml;
+package fr.irisa.reverseJava;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -19,15 +18,13 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import net.sourceforge.plantuml.SourceStringReader;
-
 public class ModelBuilder {
     public String UmlPrelude = """
             @startuml
             skinparam classAttributeIconSize 0
             """;
     public Map<String, ClassData> knownClasses = new LinkedHashMap<>();
-    public Map<String, String> options = new HashMap<>();
+    protected Configuration config = new Configuration();
 
     public ModelBuilder(String... globalOptions) {
         for (String option : globalOptions) {
@@ -37,13 +34,13 @@ public class ModelBuilder {
 
     public ModelBuilder setOptionsForAll(String... optionNames) {
         for (String optName : optionNames) {
-            options.put(optName, null); // Apply everywhere
+            config.setOption(optName, Configuration.ALL); // Apply everywhere
         }
         return this;
     }
 
     public ModelBuilder setOption(String name, String value) {
-        options.put(name, value);
+        config.setOption(name, value);
         return this;
     }
 
@@ -105,15 +102,17 @@ public class ModelBuilder {
     public ClassData addClass(int depth, int width, Class<?> base) {
         if (depth == 0 || base == null || base.getPackageName().startsWith("java.lang"))
             return null;
+        if (!config.isVisible(base)) {
+            return null;
+        }
         String name = base.getSimpleName();
         ClassData data = knownClasses.get(name);
         if (data == null) {
-            data = new ClassData(base);
+            data = new ClassData(base, config);
             knownClasses.put(name, data);
         }
         if (!data.isExplored()) {
             data.setExplored(true);
-            configureOptions(data);
             for (Class<?> i : base.getInterfaces()) {
                 addClass(depth - 1, width, i);
             }
@@ -123,13 +122,6 @@ public class ModelBuilder {
             followFields(depth, width - 1, data); // follow in width
         }
         return data;
-    }
-
-    private void configureOptions(ClassData cd) {
-        for (String option : options.keySet()) {
-            cd.setOption(option, options.get(option));
-        }
-
     }
 
     public void addFromObjects(int depth, int width, Collection<?> objects) {

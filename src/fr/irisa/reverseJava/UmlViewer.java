@@ -1,4 +1,4 @@
-package fr.irisa.diverse.plantUml;
+package fr.irisa.reverseJava;
 
 import java.io.File;
 import java.io.FileOutputStream;

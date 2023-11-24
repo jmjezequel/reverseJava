@@ -1,49 +1,37 @@
-package fr.irisa.diverse.plantUml;
+package fr.irisa.reverseJava;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.regex.Pattern;
 
 public class ClassData {
-    /**
-     * Name of the option to turn return type to "void" for a set of Members
-     */
-    private static final String NOFLUENT = "NOFLUENT";
-    /**
-     * Name of the option to hide a set of Members
-     */
-    private static final String HIDE = "HIDE";
-    /**
-     * Name of the option to hide Members whose name match the regexp
-     */
-    private static final String HIDEREGEXP = "HIDEREGEXP";
+
     String plantUML = null;
     private Class<?> classe = null;
     protected List<Field> fields = null;
     protected List<Method> methods = null;
     private ClassData superdata = null;
     String name = null;
-    boolean flat = false;
     private boolean isExplored = false;
-    private boolean showPrivate = false;
-    private boolean showProtected = false;
-    private boolean showPackage = false;
-    Set<String> noFluent = new HashSet<>();
-    Set<String> hide = new HashSet<>();
-    Pattern hideRegexp = null;
+    private Configuration config;
+
+    public ClassData(Class<?> base, Configuration config) {
+        classe = base;
+        this.config = config;
+        name = base.getSimpleName();
+    }
+
+    public ClassData(String uml) {
+        plantUML = uml;
+    }
 
     public boolean isExplored() {
         return isExplored;
@@ -51,15 +39,6 @@ public class ClassData {
 
     public void setExplored(boolean isExplored) {
         this.isExplored = isExplored;
-    }
-
-    public ClassData(Class<?> base) {
-        classe = base;
-        name = base.getSimpleName();
-    }
-
-    public ClassData(String uml) {
-        plantUML = uml;
     }
 
     public void setSuperData(ClassData superdata) {
@@ -78,7 +57,7 @@ public class ClassData {
         if (fields == null) { // Not yet initialized
             fields = new LinkedList<>();
             for (Field f : classe.getDeclaredFields()) {
-                if (isVisible(f)) {
+                if (config.isVisible(f)) {
                     fields.add(f);
                 }
             }
@@ -90,7 +69,7 @@ public class ClassData {
         if (methods == null) {
             methods = new LinkedList<>();
             for (Method f : classe.getDeclaredMethods()) {
-                if (isVisible(f))
+                if (config.isVisible(f))
                     methods.add(f);
             }
         }
@@ -127,7 +106,7 @@ public class ClassData {
                 sb.append(" 1\" ").append(typeName).append('\n');
             }
         }
-        if (flat && superdata != null) {
+        if (config.isFlat(classe) && superdata != null) {
             superdata.appendFields(sb, target);
         }
     }
@@ -139,7 +118,7 @@ public class ClassData {
         StringBuilder sb = new StringBuilder();
         Class<?> rtype = m.getReturnType();
         boolean isArray = rtype.isArray();
-        String typeName = noFluent.contains(m.getName()) ? "void" : rtype.getSimpleName();
+        String typeName = config.noFluent(m) ? "void" : rtype.getSimpleName();
         sb.append(target).append(" : ");
         appendSymbol(sb, m.getModifiers());
         if (isArray) {
@@ -160,16 +139,16 @@ public class ClassData {
         return sb.toString();
     }
 
-
-    private void addSignatures(String target, SortedSet<String> seenMethods){
+    private void addSignatures(String target, SortedSet<String> seenMethods) {
         for (Method m : getMethods()) {
             seenMethods.add(getSignature(target, m));
         }
-        if (flat && superdata != null) {
+        if (config.isFlat(classe) && superdata != null) {
             superdata.addSignatures(target, seenMethods);
         }
 
     }
+
     /**
      * 
      */
@@ -177,8 +156,8 @@ public class ClassData {
         SortedSet<String> seenMethods = new TreeSet<String>();
         addSignatures(target, seenMethods);
         for (String m : seenMethods) {
-                sb.append(m).append('\n');
-            }
+            sb.append(m).append('\n');
+        }
     }
 
     public Class<?> getGenericParameter(Field f) {
@@ -210,44 +189,13 @@ public class ClassData {
             sb.append("~");
     }
 
-    // boolean isVisibleAnnotation(AnnotatedElement f) {
-    // if (!f.isAnnotationPresent(UmlShowWhen.class))
-    // return true;
-    // UmlShowWhen annotation = f.getAnnotation(UmlShowWhen.class);
-    // String s = annotation.value();
-    // boolean result = hide.contains(s);
-    // if (hideRegexp != null) {
-    // result = result || hideRegexp.matcher(s).matches();
-    // }
-    // // System.out.println(name+showConditions.toString() + ':' + s + '=' +
-    // result);
-    // return result;
-    // }
-
-    private boolean isVisible(Member m) {
-        String name = m.getName();
-        if (hide.contains(name))
-            return false;
-        if (hideRegexp != null && hideRegexp.matcher(name).matches())
-            return false;
-        int modifier = m.getModifiers();
-        if (Modifier.isPublic(modifier))
-            return true;
-        if (Modifier.isProtected(modifier))
-            return showProtected;
-        if (Modifier.isPrivate(modifier))
-            return showPrivate;
-        // if none of the above, means it is package visibility
-        return showPackage;
-    }
-
     private void appendImplementedInterfaces(StringBuilder sb, String target) {
         Class<?>[] interfaces = classe.getInterfaces();
         final String link = " <|.. ";
         for (Class<?> s : interfaces) {
             sb.append(s.getSimpleName()).append(link).append(target).append('\n');
         }
-        if (flat && superdata != null) {
+        if (config.isFlat(classe) && superdata != null) {
             superdata.appendImplementedInterfaces(sb, target);
         }
     }
@@ -260,7 +208,7 @@ public class ClassData {
                 sb.append("enum ");
             } else {
                 if (Modifier.isAbstract(classe.getModifiers())) {
-                    if (flat)
+                    if (config.isFlat(classe))
                         return; // does not include abstact classes
                     sb.append("abstract ");
                 }
@@ -272,7 +220,7 @@ public class ClassData {
             sb.append("\n");
             appendImplementedInterfaces(sb, name);
             Class<?> sup = classe.getSuperclass();
-            if (!flat && sup != null && sup.getName() != "java.lang.Object") {
+            if (!config.isFlat(classe) && sup != null && sup.getName() != "java.lang.Object") {
                 final String link = " <|-- ";
                 sb.append(sup.getSimpleName()).append(link).append(name).append('\n');
             }
@@ -283,30 +231,4 @@ public class ClassData {
         }
     }
 
-    public void setOption(String option, String value) {
-        switch (option) {
-            case "FLAT":
-                flat = value == null || value == name;
-                break;
-            case "SHOWPRIVATE":
-                showPrivate = value == null || value == name;
-                break;
-            case "SHOWPROTECTED":
-                showProtected = value == null || value == name;
-                break;
-            case "SHOWPACKAGE":
-                showPackage = value == null || value == name;
-                break;
-            case HIDE:
-                hide.addAll(Arrays.asList(value.split(",")));
-                break;
-            case HIDEREGEXP:
-                hideRegexp = Pattern.compile(value);
-                break;
-            case NOFLUENT:
-                noFluent.addAll(Arrays.asList(value.split(",")));
-                break;
-            default:
-        }
-    }
 }
