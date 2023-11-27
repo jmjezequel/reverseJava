@@ -37,6 +37,7 @@ public class Configuration {
     private Set<Pattern> hideRegexp = new HashSet<>();
     private Set<String> noFluent = new HashSet<>();
     private Set<String> flat = new HashSet<>();
+    private Set<String> cStyleSig = new HashSet<>();
 
     private boolean matches(Set<Pattern> patterns, String value){
         for (Pattern p : patterns) {
@@ -51,11 +52,15 @@ public class Configuration {
     } 
 
     boolean isFlat(Class<?> c) {
-        return flat.contains(c.getName());
+        return contains(flat,c.getSimpleName());
+    }
+
+    boolean isCStyleSig(Class<?> c) {
+        return contains(cStyleSig,c.getSimpleName());
     }
 
     boolean noFluent(Method m) {
-        return noFluent.contains(m.getName());
+        return contains(noFluent,m.getName());
     }
 
     boolean isVisible(Member m) {
@@ -76,7 +81,7 @@ public class Configuration {
     }
 
    boolean isVisible(Class<?> c) {
-        String name = c.getName();
+        String name = c.getSimpleName();
         if (hide.contains(name))
             return false;
         if (matches(hideRegexp, name))
@@ -110,6 +115,9 @@ public class Configuration {
 
     public void setOption(String option, String value) {
         switch (option) {
+            case "C-STYLE-SIGNATURES":
+                cStyleSig.addAll(Arrays.asList(value.split(",")));
+                break;
             case "FLAT":
                 flat.addAll(Arrays.asList(value.split(",")));
                 break;

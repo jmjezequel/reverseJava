@@ -10,7 +10,6 @@ import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;

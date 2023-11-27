@@ -87,14 +87,14 @@ public class ClassData {
             if (type.isPrimitive() || typeName.equals("String") || isArray) {
                 sb.append(target).append(" : ");
                 appendSymbol(sb, f.getModifiers());
-                if (isArray) {
-                    Class<?> at = type.componentType();
-                    sb.append(at.getSimpleName()).append("[]");
+                if (config.isCStyleSig(classe)) {
+                    sb.append(getTypeDesc(type));
+                    sb.append(" ").append(f.getName()).append('\n');
                 } else {
-                    sb.append(typeName);
+                    sb.append(f.getName()).append(": ");
+                    sb.append(getTypeDesc(type)).append('\n');
                 }
-                sb.append(" ").append(f.getName()).append('\n');
-            } else if (Collection.class.isAssignableFrom(type) || Map.class.isAssignableFrom(type)) {
+            } else if (Collection.class.isAssignableFrom(type) || Map.class.isAssignableFrom(type)){
                 String baseType = getGenericParameter(f).getSimpleName();
                 sb.append(target).append(" *--> \"").append(f.getName());
                 sb.append(" *\" ").append(baseType);
@@ -111,23 +111,26 @@ public class ClassData {
         }
     }
 
+    private String getTypeDesc(Class<?> rtype) {
+        if (rtype.isArray()) {
+            Class<?> at = rtype.componentType();
+            return at.getSimpleName() + "[]";
+        }
+        return rtype.getSimpleName();
+    }
+
     /**
      * 
      */
     private String getSignature(String target, Method m) {
         StringBuilder sb = new StringBuilder();
-        Class<?> rtype = m.getReturnType();
-        boolean isArray = rtype.isArray();
-        String typeName = config.noFluent(m) ? "void" : rtype.getSimpleName();
         sb.append(target).append(" : ");
         appendSymbol(sb, m.getModifiers());
-        if (isArray) {
-            Class<?> at = rtype.componentType();
-            sb.append(at.getSimpleName()).append("[]");
-        } else {
-            sb.append(typeName);
+        if (config.isCStyleSig(classe)) { // append type at the beginning
+            String typeName = config.noFluent(m) ? "void" : getTypeDesc(m.getReturnType());
+            sb.append(typeName).append(' ');
         }
-        sb.append(" ").append(m.getName()).append('(');
+        sb.append(m.getName()).append('(');
         boolean notFirst = false;
         for (Class<?> p : m.getParameterTypes()) {
             if (notFirst)
@@ -136,6 +139,11 @@ public class ClassData {
             notFirst = true;
         }
         sb.append(")");
+        if (!config.isCStyleSig(classe)) { // append type at the end
+            String typeName = config.noFluent(m) ? "void" : getTypeDesc(m.getReturnType());
+            if (typeName != "void") 
+                sb.append(": ").append(typeName);
+        }
         return sb.toString();
     }
 
