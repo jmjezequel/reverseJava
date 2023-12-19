@@ -86,8 +86,8 @@ public class ModelBuilder {
                         Class<?> loadedClass = loader.loadClass(className);
                         System.out.println("Loaded Class: " + loadedClass.getName());
                         classList.add(loadedClass);
-                    } catch (ClassNotFoundException e) {
-                        System.out.println(e.getMessage());
+                    } catch (NoClassDefFoundError | ClassNotFoundException e) {
+                        System.out.println("Cannot load: " + className);
                     }
                 }
             }

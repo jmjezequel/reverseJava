@@ -94,7 +94,7 @@ public class ClassData {
                     sb.append(f.getName()).append(": ");
                     sb.append(getTypeDesc(type)).append('\n');
                 }
-            } else if (Collection.class.isAssignableFrom(type) || Map.class.isAssignableFrom(type)){
+            } else if (Collection.class.isAssignableFrom(type) || Map.class.isAssignableFrom(type)) {
                 String baseType = getGenericParameter(f).getSimpleName();
                 sb.append(target).append(" *--> \"").append(f.getName());
                 sb.append(" *\" ").append(baseType);
@@ -135,13 +135,13 @@ public class ClassData {
         for (Class<?> p : m.getParameterTypes()) {
             if (notFirst)
                 sb.append(", ");
-            sb.append(p.getSimpleName());
+            sb.append(p.getSimpleName().replace("[]", " ..."));
             notFirst = true;
         }
         sb.append(")");
         if (!config.isCStyleSig(classe)) { // append type at the end
             String typeName = config.noFluent(m) ? "void" : getTypeDesc(m.getReturnType());
-            if (typeName != "void") 
+            if (typeName != "void")
                 sb.append(": ").append(typeName);
         }
         return sb.toString();
