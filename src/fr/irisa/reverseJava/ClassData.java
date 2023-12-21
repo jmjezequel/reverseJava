@@ -1,5 +1,6 @@
 package fr.irisa.reverseJava;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -17,6 +18,7 @@ public class ClassData {
     String plantUML = null;
     private Class<?> classe = null;
     protected List<Field> fields = null;
+    protected List<Constructor<?>> constructors = null;
     protected List<Method> methods = null;
     private ClassData superdata = null;
     String name = null;
@@ -63,6 +65,17 @@ public class ClassData {
             }
         }
         return fields;
+    }
+
+    List<Constructor<?>> getConstructors() {
+        if (constructors == null) {
+            constructors = new LinkedList<>();
+            for (Constructor<?> c : classe.getDeclaredConstructors()) {
+                if (config.isVisible(c))
+                    constructors.add(c);
+            }
+        }
+        return constructors;
     }
 
     List<Method> getMethods() {
@@ -158,6 +171,25 @@ public class ClassData {
     }
 
     /**
+    * 
+    */
+    private void appendConstructors(StringBuilder sb, String target) {
+        for (Constructor<?> m : getConstructors()) {
+            sb.append(target).append(" : ");
+            appendSymbol(sb, m.getModifiers());
+            sb.append(target).append('(');
+            boolean notFirst = false;
+            for (Class<?> p : m.getParameterTypes()) {
+                if (notFirst)
+                    sb.append(", ");
+                sb.append(p.getSimpleName().replace("[]", " ..."));
+                notFirst = true;
+            }
+            sb.append(")\n");
+        }
+    }
+
+    /**
      * 
      */
     private void appendMethods(StringBuilder sb, String target) {
@@ -233,6 +265,7 @@ public class ClassData {
                 sb.append(sup.getSimpleName()).append(link).append(name).append('\n');
             }
             appendFields(sb, name);
+            appendConstructors(sb, name);
             appendMethods(sb, name);
         } else {
             sb.append(plantUML);

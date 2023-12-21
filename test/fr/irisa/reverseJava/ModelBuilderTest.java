@@ -19,10 +19,11 @@ public class ModelBuilderTest {
             ModelBuilder : +String UmlPrelude
             ModelBuilder *--> "knownClasses *" ClassData
             ModelBuilder *--> "config 1" Configuration
+            ModelBuilder : +ModelBuilder(String ...)
             ModelBuilder : #void saveText(String, String)
             ModelBuilder : +ClassData addClass(int, int, Class)
             ModelBuilder : +ModelBuilder setOption(String, String)
-            ModelBuilder : +ModelBuilder setOptionsForAll(String[])
+            ModelBuilder : +ModelBuilder setOptionsForAll(String ...)
             ModelBuilder : +String getDiagramSpec()
             ModelBuilder : +void addExtraInterface(String, String)
             ModelBuilder : +void addFromObjects(int, int, Collection)
@@ -31,24 +32,25 @@ public class ModelBuilderTest {
             @enduml
                         """;
     final String ModelBuilderUML = """
-        @startuml
-        skinparam classAttributeIconSize 0
-        hide circle
-        class ModelBuilder
-        ModelBuilder : +UmlPrelude: String
-        ModelBuilder *--> "knownClasses *" ClassData
-        ModelBuilder *--> "config 1" Configuration
-        ModelBuilder : #saveText(String, String)
-        ModelBuilder : +addClass(int, int, Class): ClassData
-        ModelBuilder : +addExtraInterface(String, String)
-        ModelBuilder : +addFromObjects(int, int, Collection)
-        ModelBuilder : +addJar(int, int, String)
-        ModelBuilder : +generateUMLasTXT(String)
-        ModelBuilder : +getDiagramSpec(): String
-        ModelBuilder : +setOption(String, String): ModelBuilder
-        ModelBuilder : +setOptionsForAll(String[]): ModelBuilder
-        @enduml
-                                """;
+            @startuml
+            skinparam classAttributeIconSize 0
+            hide circle
+            class ModelBuilder
+            ModelBuilder : +UmlPrelude: String
+            ModelBuilder *--> "knownClasses *" ClassData
+            ModelBuilder *--> "config 1" Configuration
+            ModelBuilder : +ModelBuilder(String ...)
+            ModelBuilder : #saveText(String, String)
+            ModelBuilder : +addClass(int, int, Class): ClassData
+            ModelBuilder : +addExtraInterface(String, String)
+            ModelBuilder : +addFromObjects(int, int, Collection)
+            ModelBuilder : +addJar(int, int, String)
+            ModelBuilder : +generateUMLasTXT(String)
+            ModelBuilder : +getDiagramSpec(): String
+            ModelBuilder : +setOption(String, String): ModelBuilder
+            ModelBuilder : +setOptionsForAll(String ...): ModelBuilder
+            @enduml
+                                    """;
 
     @Before
     public void setup() {
@@ -60,12 +62,11 @@ public class ModelBuilderTest {
     public void testSetOptionsForAll() {
         mb.setOptionsForAll("C-STYLE-SIGNATURES");
         assertTrue(mb.config.isCStyleSig(mb.getClass()));
-    }       
-
+    }
 
     @Test
     public void testCStyleSignatures() {
-        mb.setOption("C-STYLE-SIGNATURES",mb.getClass().getSimpleName());
+        mb.setOption("C-STYLE-SIGNATURES", mb.getClass().getSimpleName());
         mb.addClass(1, 1, mb.getClass());
         assertEquals(ModelBuilderCStyle, mb.getDiagramSpec());
     }
@@ -89,7 +90,6 @@ public class ModelBuilderTest {
         String result = ModelBuilderUML.replace(": ModelBuilder", "");
         assertEquals(result, mb.getDiagramSpec());
     }
-
 
     @Test
     public void testHide() {
